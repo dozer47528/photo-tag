@@ -16,6 +16,7 @@ import (
 	"github.com/nfnt/resize"
 	"image/jpeg"
 	"bufio"
+	"regexp"
 )
 
 var pathArgs = flag.String("p", "./", "Photo file paht")
@@ -29,6 +30,8 @@ func main() {
 	imageFiles := fetchImageFiles()
 
 	for _, f := range imageFiles {
+		tagMap := loadTags(f)
+
 		dataOrigin, _ := os.Open(f)
 		imgOrigin, _, _ := image.Decode(dataOrigin)
 		dataOrigin.Close()
@@ -51,20 +54,28 @@ func main() {
 
 		tagNames := make([]string, 0)
 		for _, tag := range tagResponse.Tags {
+			if !*deleteOldTagArgs && tagMap[tag.TagName] {
+				continue
+			}
+
 			cmd := "add Iptc.Application2.Keywords String " + tag.TagName
 			cmds = append(cmds, "-M", cmd)
 			tagNames = append(tagNames, tag.TagName)
 		}
+
+		if len(cmds) == 0 {
+			fmt.Printf("%s: Skip\n", f)
+			continue
+		}
+
 		cmds = append(cmds, f)
 		command := exec.Command("exiv2", cmds...)
 
-		var out bytes.Buffer
-		command.Stdout = &out
 		if err := command.Run(); err != nil {
 			fmt.Println(err)
 		}
 
-		fmt.Printf("OK: %s %s\n", f, strings.Join(tagNames, ","))
+		fmt.Printf("%s: %s\n", f, strings.Join(tagNames, ","))
 	}
 }
 
@@ -81,6 +92,31 @@ func fetchImageFiles() []string {
 		}
 	}
 	return images
+}
+
+func loadTags(filename string) map[string]bool {
+	tagMap := make(map[string]bool)
+
+	cmd := exec.Command("exiv2", "-PI", filename)
+	out := bytes.NewBufferString("")
+	cmd.Stdout = out
+
+	if err := cmd.Run(); err != nil {
+		return tagMap
+	}
+
+	output := out.String()
+	lines := strings.Split(output, "\n")
+
+	for _, line := range lines {
+		re, _ := regexp.Compile("^Iptc\\.Application2\\.Keywords\\s+String\\s+\\d+\\s+(.+)$")
+		result := re.FindStringSubmatch(line)
+		if len(result) >= 2 {
+			tagMap[result[1]] = true
+		}
+	}
+
+	return tagMap
 }
 
 func initYoutu() *youtu.Youtu {
