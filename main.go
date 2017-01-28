@@ -134,23 +134,24 @@ func initYoutu() *youtu.Youtu {
 	}
 
 	var settings struct {
-		AppId     int
-		SecretId  string
+		AppID     int
+		SecretID  string
 		SecretKey string
+		UserID    string
 	}
 
 	err = json.Unmarshal(file, &settings)
 	if err != nil {
 		fmt.Println("Youtu config file read failed:", err)
-		fmt.Println("Config should be json: \n{\n" + "    \"appId\": 10000000,\n" + "    \"secretId\": \"\",\n" + "    \"secretKey\": \"\"\n}")
+		fmt.Println("Config should be json: \n{\n" + "    \"AppID\": 10000000,\n" + "    \"SecretID\": \"\",\n" + "    \"SecretKey\": \"\",\n" + "    \"UserID\": \"\"\n}")
 		os.Exit(1)
 	}
 
 	//Get the following details
-	appID := uint32(settings.AppId)
-	secretID := settings.SecretId
+	appID := uint32(settings.AppID)
+	secretID := settings.SecretID
 	secretKey := settings.SecretKey
-	userID := "Dozer"
+	userID := settings.UserID
 
 	as, err := youtu.NewAppSign(appID, secretID, secretKey, userID)
 	if err != nil {
