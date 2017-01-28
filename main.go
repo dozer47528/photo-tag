@@ -18,48 +18,8 @@ import (
 	"bufio"
 )
 
-var pathArgs = flag.String("p", "./", "Photo file paht.")
-
-func initYoutu() *youtu.Youtu {
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Printf("Can't get current user: %v\n", err)
-		os.Exit(1)
-	}
-
-	filePath := usr.HomeDir + "/.youtu.json"
-	file, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Printf("Open youtu config file error: %v\n", err)
-		os.Exit(1)
-	}
-
-	var settings struct {
-		AppId     int
-		SecretId  string
-		SecretKey string
-	}
-
-	err = json.Unmarshal(file, &settings)
-	if err != nil {
-		fmt.Println("Youtu config file read failed:", err)
-		fmt.Println("Config should be json: \n{\n"+"    \"appId\": 10000000,\n"+"    \"secretId\": \"\",\n"+"    \"secretKey\": \"\"\n}")
-		os.Exit(1)
-	}
-
-	//Get the following details
-	appID := uint32(settings.AppId)
-	secretID := settings.SecretId
-	secretKey := settings.SecretKey
-	userID := "Dozer"
-
-	as, err := youtu.NewAppSign(appID, secretID, secretKey, userID)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewAppSign() failed: %s\n", err)
-		os.Exit(1)
-	}
-	return youtu.Init(as, youtu.DefaultHost)
-}
+var pathArgs = flag.String("p", "./", "Photo file paht")
+var deleteOldTagArgs = flag.Bool("d", false, "Delete current tags")
 
 func main() {
 	flag.Parse()
@@ -84,7 +44,11 @@ func main() {
 		}
 
 		cmds := make([]string, 0)
-		cmds = append(cmds, "-M", "del Iptc.Application2.Keywords")
+
+		if *deleteOldTagArgs {
+			cmds = append(cmds, "-M", "del Iptc.Application2.Keywords")
+		}
+
 		tagNames := make([]string, 0)
 		for _, tag := range tagResponse.Tags {
 			cmd := "add Iptc.Application2.Keywords String " + tag.TagName
@@ -117,4 +81,45 @@ func fetchImageFiles() []string {
 		}
 	}
 	return images
+}
+
+func initYoutu() *youtu.Youtu {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Printf("Can't get current user: %v\n", err)
+		os.Exit(1)
+	}
+
+	filePath := usr.HomeDir + "/.youtu.json"
+	file, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Printf("Open youtu config file error: %v\n", err)
+		os.Exit(1)
+	}
+
+	var settings struct {
+		AppId     int
+		SecretId  string
+		SecretKey string
+	}
+
+	err = json.Unmarshal(file, &settings)
+	if err != nil {
+		fmt.Println("Youtu config file read failed:", err)
+		fmt.Println("Config should be json: \n{\n" + "    \"appId\": 10000000,\n" + "    \"secretId\": \"\",\n" + "    \"secretKey\": \"\"\n}")
+		os.Exit(1)
+	}
+
+	//Get the following details
+	appID := uint32(settings.AppId)
+	secretID := settings.SecretId
+	secretKey := settings.SecretKey
+	userID := "Dozer"
+
+	as, err := youtu.NewAppSign(appID, secretID, secretKey, userID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewAppSign() failed: %s\n", err)
+		os.Exit(1)
+	}
+	return youtu.Init(as, youtu.DefaultHost)
 }
