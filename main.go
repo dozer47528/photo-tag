@@ -21,6 +21,7 @@ import (
 
 var pathArgs = flag.String("p", "./", "Photo file paht")
 var deleteOldTagArgs = flag.Bool("d", false, "Delete current tags")
+var skipHasTagArgs = flag.Bool("s", false, "Skip photo has tags")
 
 func main() {
 	flag.Parse()
@@ -31,6 +32,10 @@ func main() {
 
 	for _, f := range imageFiles {
 		tagMap := loadTags(f)
+		if *skipHasTagArgs && len(tagMap) > 0 {
+			fmt.Printf("%s: Skip\n", f)
+			continue
+		}
 
 		dataOrigin, _ := os.Open(f)
 		imgOrigin, _, _ := image.Decode(dataOrigin)
@@ -64,7 +69,7 @@ func main() {
 		}
 
 		if len(cmds) == 0 {
-			fmt.Printf("%s: Skip\n", f)
+			fmt.Printf("%s: No new tags\n", f)
 			continue
 		}
 
