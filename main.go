@@ -22,13 +22,14 @@ import (
 var pathArgs = flag.String("p", "./", "Photo file paht")
 var deleteOldTagArgs = flag.Bool("d", false, "Delete current tags")
 var skipHasTagArgs = flag.Bool("s", false, "Skip photo has tags")
+var recursivelyArgs = flag.Bool("r", false, "Recursively")
 
 func main() {
 	flag.Parse()
 
 	yt := initYoutu()
 
-	imageFiles := fetchImageFiles()
+	imageFiles := fetchImageFiles(*pathArgs)
 
 	for _, f := range imageFiles {
 		tagMap := loadTags(f)
@@ -84,16 +85,21 @@ func main() {
 	}
 }
 
-func fetchImageFiles() []string {
-	files, _ := ioutil.ReadDir(*pathArgs)
+func fetchImageFiles(rootPath string) []string {
+	files, _ := ioutil.ReadDir(rootPath)
 	images := make([]string, 0)
 	for _, f := range files {
 		if f.IsDir() {
-			continue
-		}
-		lowerName := strings.ToLower(f.Name())
-		if strings.HasSuffix(lowerName, ".jpg") || strings.HasSuffix(lowerName, ".jpeg") {
-			images = append(images, path.Join(*pathArgs, f.Name()))
+			if !*recursivelyArgs {
+				continue
+			}
+			nextPath := path.Join(rootPath, f.Name())
+			images = append(images, fetchImageFiles(nextPath)...)
+		} else {
+			lowerName := strings.ToLower(f.Name())
+			if strings.HasSuffix(lowerName, ".jpg") || strings.HasSuffix(lowerName, ".jpeg") {
+				images = append(images, path.Join(rootPath, f.Name()))
+			}
 		}
 	}
 	return images
