@@ -39,8 +39,12 @@ func main() {
 		}
 
 		dataOrigin, _ := os.Open(f)
-		imgOrigin, _, _ := image.Decode(dataOrigin)
+		imgOrigin, _, decodeErr := image.Decode(dataOrigin)
 		dataOrigin.Close()
+		if decodeErr != nil {
+			fmt.Printf("%s: %s\n", f, decodeErr.Error())
+			continue
+		}
 
 		imgDst := resize.Resize(800, 0, imgOrigin, resize.Lanczos3)
 
